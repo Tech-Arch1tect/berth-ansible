@@ -1,0 +1,2 @@
+# Python requirements for Berth Ansible Module
+websocket-client>=1.0.0
