@@ -1,0 +1,79 @@
+---
+# Before running:
+#   1. Set environment variables:
+#      export BERTH_API_KEY="brth_your_api_key_here"
+#      export BERTH_URL="https://berth.example.com"
+#      export BERTH_SERVER_ID="1"
+#      export BERTH_STACK_NAME="your-stack-name"
+#
+#   2. Run the playbook:
+#      ansible-playbook test-playbook.yml
+#
+#   3. For self-signed certs, add:
+#      export BERTH_VALIDATE_CERTS="false"
+
+- name: Test Berth Ansible Module
+  hosts: localhost
+  gather_facts: no
+
+  vars:
+    berth_url: "{{ lookup('env', 'BERTH_URL') }}"
+    berth_api_key: "{{ lookup('env', 'BERTH_API_KEY') }}"
+    berth_server_id: "{{ lookup('env', 'BERTH_SERVER_ID') }}"
+    berth_stack_name: "{{ lookup('env', 'BERTH_STACK_NAME') }}"
+    berth_validate_certs: "{{ lookup('env', 'BERTH_VALIDATE_CERTS') | default('true') }}"
+
+  tasks:
+    - name: Validate required environment variables
+      assert:
+        that:
+          - berth_url != ""
+          - berth_api_key != ""
+          - berth_server_id != ""
+          - berth_stack_name != ""
+        fail_msg: |
+          Missing required environment variables. Please set:
+            - BERTH_URL
+            - BERTH_API_KEY
+            - BERTH_SERVER_ID
+            - BERTH_STACK_NAME
+
+    - name: Display test configuration
+      debug:
+        msg:
+          - "Berth URL: {{ berth_url }}"
+          - "Server ID: {{ berth_server_id }}"
+          - "Stack Name: {{ berth_stack_name }}"
+          - "Validate Certs: {{ berth_validate_certs }}"
+
+    - name: Test operation - Restart stack
+      berth_stack:
+        berth_url: "{{ berth_url }}"
+        api_key: "{{ berth_api_key }}"
+        server_id: "{{ berth_server_id }}"
+        stack_name: "{{ berth_stack_name }}"
+        operation: "restart"
+        validate_certs: "{{ berth_validate_certs | bool }}"
+      register: test_result
+
+    - name: Display operation result
+      debug:
+        msg:
+          - "=== Operation Completed ==="
+          - "Operation ID: {{ test_result.operation_id }}"
+          - "Exit Code: {{ test_result.exit_code }}"
+          - "Status: {{ test_result.message }}"
+          - ""
+          - "=== Output ==="
+
+    - name: Display operation output
+      debug:
+        msg: "{{ test_result.output }}"
+
+    - name: Verify operation succeeded
+      assert:
+        that:
+          - test_result.exit_code == 0
+          - test_result.changed == true
+        success_msg: "✓ Test passed! Module is working correctly."
+        fail_msg: "✗ Test failed! Operation did not complete successfully."
