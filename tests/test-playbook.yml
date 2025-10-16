@@ -77,3 +77,48 @@
           - test_result.changed == true
         success_msg: "✓ Test passed! Module is working correctly."
         fail_msg: "✗ Test failed! Operation did not complete successfully."
+
+    - name: Test exec - List files in container
+      berth_exec:
+        berth_url: "{{ berth_url }}"
+        api_key: "{{ berth_api_key }}"
+        server_id: "{{ berth_server_id }}"
+        stack_name: "{{ berth_stack_name }}"
+        service_name: "api"
+        command: "ls -la"
+        validate_certs: "{{ berth_validate_certs | bool }}"
+      register: exec_result
+
+    - name: Display exec result
+      debug:
+        msg:
+          - "=== Exec Command Completed ==="
+          - "Exit Code: {{ exec_result.exit_code }}"
+          - "Output:"
+          - "{{ exec_result.stdout }}"
+
+    - name: Test exec - Get environment variables
+      berth_exec:
+        berth_url: "{{ berth_url }}"
+        api_key: "{{ berth_api_key }}"
+        server_id: "{{ berth_server_id }}"
+        stack_name: "{{ berth_stack_name }}"
+        service_name: "api"
+        command: "env | grep -i path"
+        validate_certs: "{{ berth_validate_certs | bool }}"
+      register: env_result
+
+    - name: Display environment result
+      debug:
+        msg:
+          - "=== Environment Variables ==="
+          - "{{ env_result.stdout }}"
+
+    - name: Verify exec commands succeeded
+      assert:
+        that:
+          - exec_result.exit_code == 0
+          - exec_result.changed == false
+          - env_result.exit_code == 0
+        success_msg: "✓ Exec tests passed! Command execution is working correctly."
+        fail_msg: "✗ Exec tests failed! Command execution did not complete successfully."
