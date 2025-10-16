@@ -2,6 +2,11 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import absolute_import, division, print_function
+from ansible.module_utils.basic import AnsibleModule
+from urllib.parse import urlparse
+import time
+import ssl
+import json
 __metaclass__ = type
 
 DOCUMENTATION = r'''
@@ -160,11 +165,6 @@ output:
     sample: ["Starting container web...", "Container web started"]
 '''
 
-import json
-import ssl
-import time
-from urllib.parse import urlparse
-from ansible.module_utils.basic import AnsibleModule
 
 try:
     import websocket
@@ -228,7 +228,8 @@ class BerthStackOperator:
             self.operation_id = result.get('operationId')
 
             if not self.operation_id:
-                self.module.fail_json(msg="No operation ID returned from server")
+                self.module.fail_json(
+                    msg="No operation ID returned from server")
 
             return self.operation_id
 
@@ -239,9 +240,13 @@ class BerthStackOperator:
                 details=error_body
             )
         except URLError as e:
-            self.module.fail_json(msg=f"Failed to connect to Berth server: {str(e)}")
+            self.module.fail_json(
+                msg=f"Failed to connect to Berth server: {
+                    str(e)}")
         except Exception as e:
-            self.module.fail_json(msg=f"Unexpected error starting operation: {str(e)}")
+            self.module.fail_json(
+                msg=f"Unexpected error starting operation: {
+                    str(e)}")
 
     def stream_operation(self):
         """Stream operation output via WebSocket"""
@@ -272,10 +277,10 @@ class BerthStackOperator:
                 if time.time() - start_time > self.timeout:
                     ws.close()
                     self.module.fail_json(
-                        msg=f"Operation timed out after {self.timeout} seconds",
+                        msg=f"Operation timed out after {
+                            self.timeout} seconds",
                         operation_id=self.operation_id,
-                        output=self.output_lines
-                    )
+                        output=self.output_lines)
 
                 try:
                     message = ws.recv()
@@ -298,7 +303,8 @@ class BerthStackOperator:
 
                     elif msg_type == 'complete':
                         self.success = msg_data.get('success', False)
-                        self.exit_code = msg_data.get('exitCode', 1 if not self.success else 0)
+                        self.exit_code = msg_data.get(
+                            'exitCode', 1 if not self.success else 0)
                         ws.close()
                         return
 
@@ -336,11 +342,17 @@ class BerthStackOperator:
         self.stream_operation()
 
         # Build result message
-        services_str = f" on services {', '.join(self.services)}" if self.services else ""
-        message = f"Successfully completed {self.operation} operation on stack {self.stack_name}{services_str}"
+        services_str = f" on services {
+            ', '.join(
+                self.services)}" if self.services else ""
+        message = f"Successfully completed {
+            self.operation} operation on stack {
+            self.stack_name}{services_str}"
 
         if not self.success:
-            message = f"Failed {self.operation} operation on stack {self.stack_name}{services_str}"
+            message = f"Failed {
+                self.operation} operation on stack {
+                self.stack_name}{services_str}"
 
         return {
             'changed': True,
@@ -373,7 +385,8 @@ def main():
     )
 
     if not HAS_WEBSOCKET:
-        module.fail_json(msg='The websocket-client Python module is required. Install with: pip install websocket-client')
+        module.fail_json(
+            msg='The websocket-client Python module is required. Install with: pip install websocket-client')
 
     operator = BerthStackOperator(module)
     result = operator.execute()
